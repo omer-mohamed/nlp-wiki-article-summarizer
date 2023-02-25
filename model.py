@@ -2,7 +2,8 @@ import pandas as pd
 import spacy
 import numpy as np
 from sklearn.model_selection import train_test_split
-
+from keras.preprocessing.text import Tokenizer 
+from keras_preprocessing.sequence import pad_sequences
 
 df = pd.read_csv('output.csv', encoding='iso-8859-1')
 processed_text = df['content']
@@ -42,3 +43,60 @@ x_tr, x_val, y_tr, y_val = train_test_split(
     random_state=0,
     shuffle=True,
 )
+
+x_tokenizer = Tokenizer() 
+x_tokenizer.fit_on_texts(list(x_tr))
+
+thresh = 5
+
+cnt = 0
+tot_cnt = 0
+
+for key, value in x_tokenizer.word_counts.items():
+    tot_cnt = tot_cnt + 1
+    if value < thresh:
+        cnt = cnt + 1
+    
+print("% of rare words in vocabulary: ", (cnt / tot_cnt) * 100)
+
+x_tokenizer = Tokenizer(num_words = tot_cnt - cnt) 
+x_tokenizer.fit_on_texts(list(x_tr))
+
+x_tr_seq = x_tokenizer.texts_to_sequences(x_tr) 
+x_val_seq = x_tokenizer.texts_to_sequences(x_val)
+
+x_tr = pad_sequences(x_tr_seq,  maxlen=max_text_len, padding='post')
+x_val = pad_sequences(x_val_seq, maxlen=max_text_len, padding='post')
+
+x_voc = x_tokenizer.num_words + 1
+
+print("Size of vocabulary in X = {}".format(x_voc))
+
+# Prepare a tokenizer on testing data
+y_tokenizer = Tokenizer()   
+y_tokenizer.fit_on_texts(list(y_tr))
+
+thresh = 5
+
+cnt = 0
+tot_cnt = 0
+
+for key, value in y_tokenizer.word_counts.items():
+    tot_cnt = tot_cnt + 1
+    if value < thresh:
+        cnt = cnt + 1
+    
+print("% of rare words in vocabulary:",(cnt / tot_cnt) * 100)
+
+y_tokenizer = Tokenizer(num_words=tot_cnt-cnt) 
+y_tokenizer.fit_on_texts(list(y_tr))
+
+y_tr_seq = y_tokenizer.texts_to_sequences(y_tr) 
+y_val_seq = y_tokenizer.texts_to_sequences(y_val) 
+
+y_tr = pad_sequences(y_tr_seq, maxlen=max_summary_len, padding='post')
+y_val = pad_sequences(y_val_seq, maxlen=max_summary_len, padding='post')
+
+y_voc = y_tokenizer.num_words + 1
+
+print("Size of vocabulary in Y = {}".format(y_voc))
